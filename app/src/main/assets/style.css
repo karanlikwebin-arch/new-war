@@ -40,6 +40,7 @@ button {
 }
 button svg { width: 52%; height: 52%; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 button:active, button.active { background: linear-gradient(145deg, #687958ed, #343f30ed); border-color: #dce8c2; }
+#aim.selected { color: #f5ffe7; border-color: #dce8c2; background: linear-gradient(145deg, #71865bdc, #3f5038dc); }
 #fire { width: min(17vw, 82px); height: min(17vw, 82px); right: 7%; bottom: 8%; }
 #fire { color: #ffe6d9; background: linear-gradient(145deg, #a84638ed, #672a25ed); border-color: #e89a7d; }
 #aim { right: 22%; bottom: 8%; }

@@ -32631,6 +32631,7 @@ void main() {
   var orbitPitch = 0;
   var viewmodelAim = 0;
   var viewmodelTime = 0;
+  var viewmodelAdsPosition = new Vector3(0, -0.12, -0.43);
   var audioContext = null;
   var rightShoulder = null;
   var rightArmChain = null;
@@ -32691,7 +32692,13 @@ void main() {
       -size.y * 0.12,
       0
     );
+    const sight = new Vector3(
+      -muzzleAxis * size.x * 0.02,
+      size.y * 0.34,
+      0
+    );
     const translation = center.add(handGrip).applyAxisAngle(worldUp, rotationY).multiplyScalar(-fitScale);
+    const adsPosition = sight.sub(bounds.getCenter(new Vector3())).sub(handGrip).applyAxisAngle(worldUp, rotationY).multiplyScalar(fitScale);
     weapon.position.copy(translation);
     weapon.rotation.y = rotationY;
     weapon.scale.setScalar(fitScale);
@@ -32702,7 +32709,7 @@ void main() {
         object.receiveShadow = false;
       }
     });
-    return { weapon, size, fitScale, length: 1.08 };
+    return { weapon, size, fitScale, length: 1.08, adsPosition };
   }
   function makeRifle() {
     const gun = new Group();
@@ -32816,8 +32823,10 @@ void main() {
     viewmodelCamera.add(cameraWeaponPivot);
     let muzzle;
     if (model) {
-      const { weapon, length } = makeImportedWeapon(model, targetForward);
+      const { weapon, length, adsPosition } = makeImportedWeapon(model, targetForward);
       cameraWeaponPivot.add(weapon);
+      viewmodelAdsPosition.copy(adsPosition).multiplyScalar(-1);
+      viewmodelAdsPosition.z = -0.43;
       muzzle = new Object3D();
       muzzle.position.set(0, 0, targetForward * length * 0.68);
       cameraWeaponPivot.add(muzzle);
@@ -32827,6 +32836,7 @@ void main() {
       fallback.gun.scale.setScalar(0.8);
       fallback.gun.position.copy(fallback.grip.position).applyAxisAngle(worldUp, fallback.gun.rotation.y).multiplyScalar(-fallback.gun.scale.x);
       cameraWeaponPivot.add(fallback.gun);
+      viewmodelAdsPosition.set(0, -0.12, -0.43);
       muzzle = fallback.muzzle;
     }
     cameraWeaponMuzzle = muzzle;
@@ -33261,6 +33271,11 @@ void main() {
     worldWeaponQuaternion.multiply(weaponPitchQuaternion);
     weaponMount.quaternion.copy(handWorldQuaternion.invert().multiply(worldWeaponQuaternion));
   }
+  function updateThirdPersonHold() {
+    if (firstPerson) return;
+    updateWeaponMount();
+    solveWeaponHoldPose();
+  }
   function collides(x, z) {
     return blockers.some((item) => Math.abs(x - item.x) < item.width && Math.abs(z - item.z) < item.depth);
   }
@@ -33316,14 +33331,14 @@ void main() {
       const swayX = Math.sin(viewmodelTime) * 4e-3 * movement;
       const swayY = Math.abs(Math.cos(viewmodelTime)) * 6e-3 * movement;
       cameraWeaponPivot.position.set(
-        0.22 - viewmodelAim * 0.2 + swayX,
-        -0.3 + viewmodelAim * 0.23 + swayY - reloadPhase * 0.1 - recoil * 0.035,
-        -0.62 + viewmodelAim * 0.1 + recoil * 0.075
+        0.22 + (viewmodelAdsPosition.x - 0.22) * viewmodelAim + swayX * (1 - viewmodelAim),
+        -0.3 + (viewmodelAdsPosition.y + 0.3) * viewmodelAim + swayY * (1 - viewmodelAim) - reloadPhase * 0.1 - recoil * 0.035,
+        -0.62 + (viewmodelAdsPosition.z + 0.62) * viewmodelAim + recoil * 0.075
       );
       cameraWeaponPivot.rotation.set(
-        reloadPhase * 0.18 - recoil * 0.025 + swayY * 0.3,
-        -swayX * 0.6,
-        -swayX * 0.35
+        reloadPhase * 0.18 - recoil * 0.025 + swayY * 0.3 * (1 - viewmodelAim),
+        -swayX * 0.6 * (1 - viewmodelAim),
+        -swayX * 0.35 * (1 - viewmodelAim)
       );
     }
     if (!dead && !jumping && Math.abs(joyX) + Math.abs(joyY) > 0.1) {
@@ -33351,10 +33366,7 @@ void main() {
     }
     if (!dead && !cameraOrbit) playerRoot.rotation.y = yaw;
     if (mixer) mixer.update(dt);
-    if (!firstPerson) {
-      updateWeaponMount();
-      solveWeaponHoldPose();
-    }
+    updateThirdPersonHold();
     updateCamera(dt);
     if (fireHeld) shoot();
   }
@@ -33408,11 +33420,11 @@ void main() {
     fireHeld = false;
   });
   bindButton("aim", () => {
-    aiming = true;
-    document.body.classList.add("aiming");
-  }, () => {
-    aiming = false;
-    document.body.classList.remove("aiming");
+    aiming = !aiming;
+    document.body.classList.toggle("aiming", aiming);
+    const aimButton = document.querySelector("#aim");
+    aimButton.classList.toggle("selected", aiming);
+    aimButton.setAttribute("aria-pressed", String(aiming));
   });
   bindButton("jump", beginJump);
   bindButton("prone", toggleProne);

@@ -40,11 +40,12 @@ baslatma hatalari ekranda acik hata mesaji olarak gosterilir.
 Silah modeli tetik kabzasi sag el pivotuna oturacak sekilde mesh olcek ve eksenlerine
 gore hizalanir; dipcik omuza yakin, namlu ileri bakacak sekilde AR-70 ve AKM eksenleri
 ayri ayri kalibre edilir. Ucuncu sahista silah eli ve namlu pitch'i karakterle izler.
-Birinci sahis gorunumunde silah hedefe yaklastirilarak nisan pozuna alinabilir;
-ADS sirasinda kamera FOV'u 42 dereceye yumuşakca iner. Viewmodel ayri bir sahnede
+Nisan dugmesi tek dokunmayla ADS ac/kapat yapar. Birinci sahista gercek modelin
+gez/arpacik referans noktasina gore viewmodel yeri hizalanir; ADS sirasinda kamera
+FOV'u 42 dereceye yumusakca iner. Viewmodel ayri bir sahnede
 ikinci render gecisiyle cizilir ve ana sahnenin depth tamponu temizlenir; bu,
 silah/ellerin duvar geometrisiyle kesismesini engeller (viewmodel yakin engellerin
-onunde cizilir). Hareket salinimi ve atis geri tepmesi yumusatilmistir.
+onunde cizilir). Nisan disinda hareket salinimi ve atis geri tepmesi yumusatilmistir.
 Atis sirasinda Backstep klibi ile silah geri tepmesi birlikte oynatilir. Sarjor mermi
 bitince otomatik dolar. Ekranda skor/mermi/hedef yazisi yoktur.
 Hedef tahtasina uc isabet skor kazandirir. Telefon/emulator bagliysa
