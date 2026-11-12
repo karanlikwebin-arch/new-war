@@ -107,6 +107,12 @@ let targetFlash = 0;
 let gameReady = false;
 let gameStarted = false;
 let firstPerson = true;
+let cameraOrbit = false;
+let cameraMode = 0;
+let orbitYaw = 0;
+let orbitPitch = 0;
+let viewmodelAim = 0;
+let viewmodelTime = 0;
 let audioContext = null;
 let rightShoulder = null;
 let rightArmChain = null;
@@ -282,7 +288,7 @@ function createCameraWeapon(model) {
   const sleeve = new THREE.MeshStandardMaterial({ color: 0x4b5143, roughness: 0.95 });
   const glove = new THREE.MeshStandardMaterial({ color: 0x77705a, roughness: 0.95 });
   const axis = new THREE.Vector3(0, 1, 0);
-  const addForearm = (start, end, radius) => {
+  const addForearm = (start, end, radius, thumbDirection) => {
     const direction = new THREE.Vector3().subVectors(end, start);
     const length = direction.length();
     const arm = new THREE.Mesh(
@@ -296,6 +302,20 @@ function createCameraWeapon(model) {
     hand.position.copy(end);
     hand.scale.set(1, 0.72, 1.15);
     cameraWeaponPivot.add(hand);
+    for (let fingerIndex = 0; fingerIndex < 4; fingerIndex++) {
+      const finger = new THREE.Mesh(
+        new THREE.CapsuleGeometry(0.018, 0.055, 2, 6),
+        glove,
+      );
+      finger.position.set(end.x + (fingerIndex - 1.5) * 0.033, end.y - 0.065, end.z + 0.035);
+      finger.rotation.x = 0.35;
+      cameraWeaponPivot.add(finger);
+    }
+    const thumb = new THREE.Mesh(new THREE.CapsuleGeometry(0.02, 0.07, 2, 6), glove);
+    thumb.position.set(end.x + thumbDirection * 0.065, end.y - 0.005, end.z - 0.015);
+    thumb.rotation.z = thumbDirection * 0.85;
+    thumb.rotation.x = -0.5;
+    cameraWeaponPivot.add(thumb);
     const cuff = new THREE.Mesh(
       new THREE.CylinderGeometry(radius * 0.76, radius * 0.76, 0.065, 10),
       glove,
@@ -304,8 +324,18 @@ function createCameraWeapon(model) {
     cuff.quaternion.setFromUnitVectors(axis, direction);
     cameraWeaponPivot.add(cuff);
   };
-  addForearm(new THREE.Vector3(0.42, -0.78, 0.04), new THREE.Vector3(0.1, -0.13, 0.12), 0.105);
-  addForearm(new THREE.Vector3(-0.42, -0.78, -0.02), new THREE.Vector3(-0.1, -0.13, -0.2), 0.1);
+  addForearm(
+    new THREE.Vector3(0.42, -0.78, 0.04),
+    new THREE.Vector3(0.1, -0.13, 0.12),
+    0.105,
+    -1,
+  );
+  addForearm(
+    new THREE.Vector3(-0.42, -0.78, -0.02),
+    new THREE.Vector3(-0.1, -0.13, -0.2),
+    0.1,
+    1,
+  );
   cameraMuzzleFlash = new THREE.Mesh(
     new THREE.SphereGeometry(0.055, 8, 6),
     new THREE.MeshBasicMaterial({ color: 0xffc36a, transparent: true, opacity: 0.9 }),
@@ -317,15 +347,29 @@ function createCameraWeapon(model) {
   cameraWeaponPivot.visible = firstPerson;
 }
 
-function setCameraMode(value) {
-  firstPerson = value;
+function setCameraMode(mode) {
+  const wasOrbiting = cameraOrbit;
+  cameraMode = mode;
+  firstPerson = mode === 0;
+  cameraOrbit = mode === 2;
+  if (cameraOrbit && !wasOrbiting) {
+    orbitYaw = yaw;
+    orbitPitch = -pitch;
+  } else if (wasOrbiting && !cameraOrbit) {
+    yaw = orbitYaw;
+    pitch = -orbitPitch;
+    playerRoot.rotation.y = yaw;
+  }
   soldier?.traverse((object) => {
     if (object.isMesh) object.visible = !firstPerson;
   });
   if (riflePivot) riflePivot.visible = !firstPerson;
   if (cameraWeaponPivot) cameraWeaponPivot.visible = firstPerson;
-  document.querySelector("#camera-first").classList.toggle("active", firstPerson);
-  document.querySelector("#camera-third").classList.toggle("active", !firstPerson);
+  const button = document.querySelector("#camera-mode");
+  const labels = ["1. ŞAHIS", "ARKA TAKİP", "SERBEST BAKIŞ"];
+  button.dataset.mode = String(mode);
+  button.setAttribute("aria-label", `Kamera modu: ${labels[mode]}`);
+  document.querySelector("#camera-mode-label").textContent = labels[mode];
   updateCamera(1);
 }
 
@@ -470,7 +514,7 @@ function loadSoldier() {
       gameStarted = true;
       document.body.classList.remove("prestart");
       loading.classList.add("hidden");
-      setCameraMode(firstPerson);
+      setCameraMode(cameraMode);
       playAnimation("Idle");
     } catch (error) {
       gameReady = false;
@@ -540,6 +584,11 @@ function playShotSound() {
 
 function shoot() {
   if (!gameReady || dead || reloadTimer > 0 || ammo <= 0 || shotTimer > 0) return;
+  if (cameraOrbit) {
+    yaw = orbitYaw;
+    pitch = -orbitPitch;
+    playerRoot.rotation.y = yaw;
+  }
   shotTimer = aiming ? 0.21 : 0.27;
   ammo--;
   recoil = 1;
@@ -617,27 +666,29 @@ function updateCamera(dt) {
     ).normalize();
     cameraLookTarget.copy(camera.position).addScaledVector(cameraAimDirection, 12);
     camera.lookAt(cameraLookTarget);
-    camera.fov = aiming ? 48 : 68;
+    camera.fov = aiming ? 52 : 68;
     camera.updateProjectionMatrix();
     return;
   }
 
   const distance = aiming ? 3.1 : 4.4;
   const height = prone ? 0.75 : 1.6;
-  forward.set(Math.sin(yaw), 0, Math.cos(yaw));
+  const cameraYaw = cameraOrbit ? orbitYaw : yaw;
+  const cameraPitch = cameraOrbit ? -orbitPitch : pitch;
+  forward.set(Math.sin(cameraYaw), 0, Math.cos(cameraYaw));
   cameraFocus.copy(playerPosition);
   cameraFocus.y += prone ? 0.75 : 1.35;
   cameraAimDirection.set(
-    Math.sin(yaw) * Math.cos(pitch),
-    Math.sin(pitch),
-    Math.cos(yaw) * Math.cos(pitch),
+    Math.sin(cameraYaw) * Math.cos(cameraPitch),
+    Math.sin(cameraPitch),
+    Math.cos(cameraYaw) * Math.cos(cameraPitch),
   ).normalize();
   cameraDestination.copy(cameraFocus).addScaledVector(cameraAimDirection, -distance);
   cameraDestination.y += height;
   camera.position.lerp(cameraDestination, 1 - Math.exp(-dt * 8));
   cameraLookTarget.copy(cameraFocus).addScaledVector(cameraAimDirection, 12);
   camera.lookAt(cameraLookTarget);
-  const targetFov = aiming ? 46 : 68;
+  const targetFov = aiming ? 52 : 68;
   camera.fov += (targetFov - camera.fov) * Math.min(1, dt * 8);
   camera.updateProjectionMatrix();
 }
@@ -734,26 +785,39 @@ function update(dt) {
       : 0;
     riflePivot.position.z = 0.04 - recoil * 0.055;
     riflePivot.position.y = -0.035 - reloadPhase * 0.11;
-    riflePivot.rotation.x = reloadPhase * 0.26;
+    riflePivot.rotation.x = -pitch + reloadPhase * 0.26;
   }
   if (cameraWeaponPivot) {
     const reloadPhase = reloadTimer > 0
       ? Math.sin(((RELOAD_SECONDS - reloadTimer) / RELOAD_SECONDS) * Math.PI)
       : 0;
-    cameraWeaponPivot.position.z = -0.62 + recoil * 0.075;
-    cameraWeaponPivot.position.y = -0.31 - reloadPhase * 0.1;
-    cameraWeaponPivot.rotation.x = reloadPhase * 0.18;
+    const movement = Math.min(1, Math.hypot(joyX, joyY));
+    viewmodelTime += dt * (movement > 0.1 ? 9 : 2);
+    viewmodelAim += ((aiming ? 1 : 0) - viewmodelAim) * Math.min(1, dt * 10);
+    const swayX = Math.sin(viewmodelTime) * 0.004 * movement;
+    const swayY = Math.abs(Math.cos(viewmodelTime)) * 0.006 * movement;
+    cameraWeaponPivot.position.set(
+      0.22 - viewmodelAim * 0.2 + swayX,
+      -0.3 + viewmodelAim * 0.23 + swayY - reloadPhase * 0.1 - recoil * 0.035,
+      -0.62 + viewmodelAim * 0.1 + recoil * 0.075,
+    );
+    cameraWeaponPivot.rotation.set(
+      reloadPhase * 0.18 - recoil * 0.025 + swayY * 0.3,
+      -swayX * 0.6,
+      -swayX * 0.35,
+    );
   }
 
   if (!dead && !jumping && (Math.abs(joyX) + Math.abs(joyY) > 0.1)) {
     const speed = prone ? 0.8 : aiming ? 1.8 : 3.0;
-    forward.set(Math.sin(yaw), 0, Math.cos(yaw));
-    right.set(Math.cos(yaw), 0, -Math.sin(yaw));
+    const movementYaw = cameraOrbit ? orbitYaw : yaw;
+    forward.set(Math.sin(movementYaw), 0, Math.cos(movementYaw));
+    right.set(Math.cos(movementYaw), 0, -Math.sin(movementYaw));
     const moveX = (right.x * joyX + forward.x * joyY) * speed * dt;
     const moveZ = (right.z * joyX + forward.z * joyY) * speed * dt;
     if (!collides(playerPosition.x + moveX, playerPosition.z)) playerPosition.x += moveX;
     if (!collides(playerPosition.x, playerPosition.z + moveZ)) playerPosition.z += moveZ;
-    playerRoot.rotation.y = yaw;
+    playerRoot.rotation.y = movementYaw;
     updateLocomotion();
   } else if (!jumping) {
     updateLocomotion();
@@ -768,7 +832,7 @@ function update(dt) {
       playAnimation("Landing", true);
     }
   }
-  if (!dead) playerRoot.rotation.y = yaw;
+  if (!dead && !cameraOrbit) playerRoot.rotation.y = yaw;
   if (mixer) mixer.update(dt);
   if (!firstPerson) solveWeaponHoldPose();
   updateCamera(dt);
@@ -823,8 +887,7 @@ bindButton("weapon", () => {
   if (hand) createWeapon(hand);
   updateWeaponButton();
 });
-bindButton("camera-first", () => setCameraMode(true));
-bindButton("camera-third", () => setCameraMode(false));
+bindButton("camera-mode", () => setCameraMode((cameraMode + 1) % 3));
 
 function updateWeaponButton() {
   document.querySelector("#weapon").setAttribute(
@@ -874,8 +937,15 @@ lookPad.addEventListener("pointerdown", (event) => {
 });
 lookPad.addEventListener("pointermove", (event) => {
   if (event.pointerId !== lookPointer) return;
-  yaw += (event.clientX - lastLookX) * 0.006;
-  pitch = Math.max(-0.45, Math.min(0.65, pitch - (event.clientY - lastLookY) * 0.005));
+  const deltaX = (event.clientX - lastLookX) * 0.006;
+  const deltaPitch = -(event.clientY - lastLookY) * 0.005;
+  if (cameraOrbit) {
+    orbitYaw += deltaX;
+    orbitPitch = Math.max(-0.3, Math.min(0.75, orbitPitch + deltaPitch));
+  } else {
+    yaw += deltaX;
+    pitch = Math.max(-0.45, Math.min(0.65, pitch + deltaPitch));
+  }
   lastLookX = event.clientX;
   lastLookY = event.clientY;
 });

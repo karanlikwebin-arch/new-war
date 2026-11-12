@@ -18,7 +18,18 @@ def solid_pbr_material(name, color, metallic, roughness):
     return material
 
 
-def export_fbx(filename, output_name, prefix, color, metallic, roughness):
+def weapon_material(prefix, object_name):
+    part = object_name.lower()
+    if "magazine" in part or "cargador" in part:
+        return solid_pbr_material(f"{prefix}_Polymer", (0.055, 0.065, 0.052), 0.08, 0.78)
+    if "trigger" in part or "ejection" in part:
+        return solid_pbr_material(f"{prefix}_Steel", (0.075, 0.082, 0.075), 0.72, 0.42)
+    if "low part" in part or "parte baja" in part:
+        return solid_pbr_material(f"{prefix}_LowerReceiver", (0.085, 0.095, 0.075), 0.18, 0.7)
+    return solid_pbr_material(f"{prefix}_Receiver", (0.12, 0.14, 0.12), 0.62, 0.48)
+
+
+def export_fbx(filename, output_name, prefix):
     bpy.ops.wm.read_factory_settings(use_empty=True)
     source = ROOT / filename
     if not source.is_file():
@@ -29,8 +40,8 @@ def export_fbx(filename, output_name, prefix, color, metallic, roughness):
     if not meshes:
         raise RuntimeError(f"{filename} contains no mesh objects.")
 
-    material = solid_pbr_material(f"{prefix}_PBR", color, metallic, roughness)
     for obj in meshes:
+        material = weapon_material(prefix, obj.name)
         obj.name = f"{prefix}_{obj.name}"
         world_matrix = obj.matrix_world.copy()
         obj.parent = None
@@ -67,14 +78,8 @@ def export_fbx(filename, output_name, prefix, color, metallic, roughness):
 
 def main():
     OUTPUT.mkdir(parents=True, exist_ok=True)
-    export_fbx(
-        "ar70_pbr.FBX", "ar70_pbr.glb", "AR70",
-        (0.16, 0.19, 0.16), 0.58, 0.48,
-    )
-    export_fbx(
-        "akm.fbx", "akm.glb", "AKM",
-        (0.12, 0.13, 0.11), 0.52, 0.56,
-    )
+    export_fbx("ar70_pbr.FBX", "ar70_pbr.glb", "AR70")
+    export_fbx("akm.fbx", "akm.glb", "AKM")
 
 
 main()

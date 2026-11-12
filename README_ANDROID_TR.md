@@ -7,7 +7,8 @@ yedi klibi tek `soldier.glb` dosyasinda birlestirir: idle, yurume, geri adim, zi
 inis, prone ve olum. `tools/build_weapons_glb.py`, depodaki `ar70_pbr.FBX` ve `akm.fbx`
 dosyalarini Android icin GLB'ye cevirir; ekrandaki **DEGISTIR** dugmesi iki modeli
 birbirine cevirir. FBX'lerde referans verilen ayri PBR texture dosyalari depoda olmadigi
-icin donusumde renk/metallic/roughness malzemeleri kullanilir. Ates ve doldur animasyon
+icin donusumde parca bazli metal/polimer renk, metallic ve roughness malzemeleri kullanilir.
+Dokulu gorunum icin bu kaynak texture dosyalarinin ayrıca eklenmesi gerekir. Ates ve doldur animasyon
 klipleri gelen dosyalar arasinda yok; ates geri tepmesi,
 namlu parlamasi, iz efekti, ses ve doldurma hareketi oyun kodunda olusturulur.
 
@@ -28,12 +29,16 @@ APK: `app/build/outputs/apk/debug/app-debug.apk`
 Yatay ekranda sol joystick hareketi, sag ekranda saga surukleme saga; sola surukleme
 sola doner. Yukari/asagi surukleme kamera egimini degistirir. Varsayilan gorunum birinci
 sahistir; ustteki ikonlu dugmelerle birinci/ucuncu sahis secilir. Karakter yuklenince
-oyun otomatik baslar, acilis ekraninda "DEVAM ET" dugmesi yoktur. Ates/nisan,
-zipla/yat-kalk, silah degistirme ve kamera dugmeleri ikonlarla gosterilir.
+oyun otomatik baslar, acilis ekraninda "DEVAM ET" dugmesi yoktur. Kamera ikonu
+birinci sahis, arkadan takip ve serbest orbit modlari arasinda gecer. Serbest orbit
+modunda sag ekrani surukleyerek karakterin etrafinda 360 derece bakilir.
+Ates/nisan, zipla/yat-kalk, silah degistirme ve kamera dugmeleri ikonlarla gosterilir.
 Silah karakterin sag el kemigine baglanir; iki kolun IK pozlari ates ve bekleme
 durumlarinda tutusu korur.
 Birinci sahis namlu parlamasi kamera silahinin namlu nesnesine baglidir; karakter
 baslatma hatalari ekranda acik hata mesaji olarak gosterilir.
+Birinci sahis gorunumunde silah hedefe yaklastirilarak nisan pozuna alinabilir;
+hareket salinimi ve atis geri tepmesi yumusatilmistir.
 Atis sirasinda Backstep klibi ile silah geri tepmesi birlikte oynatilir. Sarjor mermi
 bitince otomatik dolar. Ekranda skor/mermi/hedef yazisi yoktur.
 Hedef tahtasina uc isabet skor kazandirir. Telefon/emulator bagliysa

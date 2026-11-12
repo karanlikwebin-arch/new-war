@@ -49,19 +49,18 @@ button:active, button.active { background: linear-gradient(145deg, #687958ed, #3
   right: 36%; bottom: 8%; width: min(10vw, 48px); height: min(10vw, 48px);
   color: #e8eddd;
 }
-#camera-modes {
-  position: absolute; top: 5%; right: 4%; display: flex; gap: 8px;
-  padding: 5px; border: 1px solid #e1e9e244; border-radius: 30px;
-  background: #17211dcc; box-shadow: 0 5px 16px #0006;
-  pointer-events: none;
+#camera-mode {
+  top: 5%; right: 4%; width: auto; min-width: 132px; height: 46px;
+  padding: 0 13px; display: flex; align-items: center; justify-content: center;
+  gap: 8px; border-radius: 24px; color: #f0f3e8;
 }
-.camera-mode {
-  position: static; width: min(11vw, 46px); height: min(11vw, 46px);
-  border-color: transparent; background: transparent; box-shadow: none;
+#camera-mode svg { width: 23px; height: 23px; flex: none; }
+#camera-mode-label {
+  min-width: 74px; font-size: 9px; font-weight: 700;
+  letter-spacing: 0.08em; white-space: nowrap;
 }
-.camera-mode.active {
-  color: #f5ffe7; background: linear-gradient(145deg, #71865bdc, #3f5038dc);
-  border-color: #dce8c277; box-shadow: 0 2px 8px #0005, inset 0 1px 0 #ffffff30;
+#camera-mode[data-mode="2"] {
+  border-color: #d5e8a888; background: linear-gradient(145deg, #52684edc, #25382bdc);
 }
 #loading {
   z-index: 6; left: 50%; top: 50%; transform: translate(-50%, -50%);
