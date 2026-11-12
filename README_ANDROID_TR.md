@@ -30,7 +30,7 @@ Yatay ekranda sol joystick hareketi, sag ekranda saga surukleme saga; sola suruk
 sola doner. Yukari/asagi surukleme kamera egimini degistirir. Varsayilan gorunum birinci
 sahistir; ustteki ikonlu dugmelerle birinci/ucuncu sahis secilir. Karakter yuklenince
 oyun otomatik baslar, acilis ekraninda "DEVAM ET" dugmesi yoktur. Kamera ikonu
-birinci sahis, arkadan takip ve serbest orbit modlari arasinda gecer. Serbest orbit
+bastikca birinci sahis, arkadan takip ve serbest orbit modlari arasinda gecer. Serbest orbit
 modunda sag ekrani surukleyerek karakterin etrafinda 360 derece bakilir.
 Ates/nisan, zipla/yat-kalk, silah degistirme ve kamera dugmeleri ikonlarla gosterilir.
 Silah karakterin sag el kemigine baglanir; iki kolun IK pozlari ates ve bekleme
@@ -38,7 +38,10 @@ durumlarinda tutusu korur.
 Birinci sahis namlu parlamasi kamera silahinin namlu nesnesine baglidir; karakter
 baslatma hatalari ekranda acik hata mesaji olarak gosterilir.
 Birinci sahis gorunumunde silah hedefe yaklastirilarak nisan pozuna alinabilir;
-hareket salinimi ve atis geri tepmesi yumusatilmistir.
+ADS sirasinda kamera FOV'u 42 dereceye yumuşakca iner. Viewmodel ayri bir sahnede
+ikinci render gecisiyle cizilir ve ana sahnenin depth tamponu temizlenir; bu,
+silah/ellerin duvar geometrisiyle kesismesini engeller (viewmodel yakin engellerin
+onunde cizilir). Hareket salinimi ve atis geri tepmesi yumusatilmistir.
 Atis sirasinda Backstep klibi ile silah geri tepmesi birlikte oynatilir. Sarjor mermi
 bitince otomatik dolar. Ekranda skor/mermi/hedef yazisi yoktur.
 Hedef tahtasina uc isabet skor kazandirir. Telefon/emulator bagliysa

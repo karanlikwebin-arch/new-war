@@ -19,6 +19,14 @@ scene.background = new THREE.Color(0x89969a);
 scene.fog = new THREE.Fog(0x89969a, 25, 68);
 const camera = new THREE.PerspectiveCamera(68, window.innerWidth / window.innerHeight, 0.08, 100);
 scene.add(camera);
+const viewmodelScene = new THREE.Scene();
+const viewmodelCamera = new THREE.PerspectiveCamera(68, window.innerWidth / window.innerHeight, 0.01, 12);
+viewmodelScene.add(viewmodelCamera);
+viewmodelScene.add(new THREE.HemisphereLight(0xdce9f0, 0x4a443b, 1.8));
+const viewmodelKeyLight = new THREE.DirectionalLight(0xffedcf, 2.2);
+viewmodelKeyLight.position.set(-0.7, 1.3, 1.8);
+viewmodelScene.add(viewmodelKeyLight);
+renderer.autoClear = false;
 const clock = new THREE.Clock();
 const raycaster = new THREE.Raycaster();
 const centerScreen = new THREE.Vector2(0, 0);
@@ -250,10 +258,10 @@ function createWeapon(rightHand) {
 }
 
 function createCameraWeapon(model) {
-  if (cameraWeaponPivot) camera.remove(cameraWeaponPivot);
+  if (cameraWeaponPivot?.parent) cameraWeaponPivot.parent.remove(cameraWeaponPivot);
   cameraWeaponPivot = new THREE.Group();
   cameraWeaponPivot.position.set(0.22, -0.3, -0.62);
-  camera.add(cameraWeaponPivot);
+  viewmodelCamera.add(cameraWeaponPivot);
   let muzzle;
 
   if (model) {
@@ -264,7 +272,7 @@ function createCameraWeapon(model) {
     const size = bounds.getSize(new THREE.Vector3());
     weapon.position.sub(center);
     weapon.rotation.y = Math.PI / 2;
-    weapon.scale.setScalar(0.88 / Math.max(size.x, size.y, size.z));
+    weapon.scale.setScalar(1.02 / Math.max(size.x, size.y, size.z));
     weapon.traverse((object) => {
       if (object.isMesh) {
         object.frustumCulled = false;
@@ -292,7 +300,7 @@ function createCameraWeapon(model) {
     const direction = new THREE.Vector3().subVectors(end, start);
     const length = direction.length();
     const arm = new THREE.Mesh(
-      new THREE.CylinderGeometry(radius * 0.72, radius, length, 10),
+      new THREE.CapsuleGeometry(radius, Math.max(0.01, length - radius * 2), 5, 10),
       sleeve,
     );
     arm.position.copy(start).add(end).multiplyScalar(0.5);
@@ -324,18 +332,8 @@ function createCameraWeapon(model) {
     cuff.quaternion.setFromUnitVectors(axis, direction);
     cameraWeaponPivot.add(cuff);
   };
-  addForearm(
-    new THREE.Vector3(0.42, -0.78, 0.04),
-    new THREE.Vector3(0.1, -0.13, 0.12),
-    0.105,
-    -1,
-  );
-  addForearm(
-    new THREE.Vector3(-0.42, -0.78, -0.02),
-    new THREE.Vector3(-0.1, -0.13, -0.2),
-    0.1,
-    1,
-  );
+  addForearm(new THREE.Vector3(0.39, -0.82, 0.04), new THREE.Vector3(0.1, -0.13, 0.12), 0.105, -1);
+  addForearm(new THREE.Vector3(-0.4, -0.82, 0.02), new THREE.Vector3(-0.1, -0.13, -0.2), 0.1, 1);
   cameraMuzzleFlash = new THREE.Mesh(
     new THREE.SphereGeometry(0.055, 8, 6),
     new THREE.MeshBasicMaterial({ color: 0xffc36a, transparent: true, opacity: 0.9 }),
@@ -365,6 +363,7 @@ function setCameraMode(mode) {
   });
   if (riflePivot) riflePivot.visible = !firstPerson;
   if (cameraWeaponPivot) cameraWeaponPivot.visible = firstPerson;
+  document.body.classList.toggle("first-person", firstPerson);
   const button = document.querySelector("#camera-mode");
   const labels = ["1. ŞAHIS", "ARKA TAKİP", "SERBEST BAKIŞ"];
   button.dataset.mode = String(mode);
@@ -596,6 +595,7 @@ function shoot() {
   playShotSound();
 
   camera.updateMatrixWorld();
+  syncViewmodelCamera();
   raycaster.setFromCamera(centerScreen, camera);
   const intersections = raycaster.intersectObjects(shotObjects, false);
   const hit = intersections[0];
@@ -666,7 +666,7 @@ function updateCamera(dt) {
     ).normalize();
     cameraLookTarget.copy(camera.position).addScaledVector(cameraAimDirection, 12);
     camera.lookAt(cameraLookTarget);
-    camera.fov = aiming ? 52 : 68;
+    camera.fov += ((aiming ? 42 : 68) - camera.fov) * Math.min(1, dt * 12);
     camera.updateProjectionMatrix();
     return;
   }
@@ -688,9 +688,19 @@ function updateCamera(dt) {
   camera.position.lerp(cameraDestination, 1 - Math.exp(-dt * 8));
   cameraLookTarget.copy(cameraFocus).addScaledVector(cameraAimDirection, 12);
   camera.lookAt(cameraLookTarget);
-  const targetFov = aiming ? 52 : 68;
+  const targetFov = aiming ? 46 : 68;
   camera.fov += (targetFov - camera.fov) * Math.min(1, dt * 8);
   camera.updateProjectionMatrix();
+}
+
+function syncViewmodelCamera() {
+  camera.updateMatrixWorld(true);
+  camera.getWorldPosition(viewmodelCamera.position);
+  camera.getWorldQuaternion(viewmodelCamera.quaternion);
+  viewmodelCamera.fov = camera.fov;
+  viewmodelCamera.aspect = camera.aspect;
+  viewmodelCamera.updateProjectionMatrix();
+  viewmodelCamera.updateMatrixWorld(true);
 }
 
 function solveArmIK(chain, target, blend) {
@@ -843,7 +853,13 @@ function animate() {
   requestAnimationFrame(animate);
   const dt = Math.min(clock.getDelta(), 0.05);
   update(dt);
+  syncViewmodelCamera();
+  renderer.clear();
   renderer.render(scene, camera);
+  if (firstPerson) {
+    renderer.clearDepth();
+    renderer.render(viewmodelScene, viewmodelCamera);
+  }
 }
 
 function resize() {
@@ -851,6 +867,8 @@ function resize() {
   const height = window.innerHeight;
   camera.aspect = width / height;
   camera.updateProjectionMatrix();
+  viewmodelCamera.aspect = width / height;
+  viewmodelCamera.updateProjectionMatrix();
   renderer.setSize(width, height, false);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.35));
 }
@@ -878,7 +896,13 @@ function bindButton(id, down, up = null) {
 }
 
 bindButton("fire", () => { fireHeld = true; shoot(); }, () => { fireHeld = false; });
-bindButton("aim", () => { aiming = true; }, () => { aiming = false; });
+bindButton("aim", () => {
+  aiming = true;
+  document.body.classList.add("aiming");
+}, () => {
+  aiming = false;
+  document.body.classList.remove("aiming");
+});
 bindButton("jump", beginJump);
 bindButton("prone", toggleProne);
 bindButton("weapon", () => {

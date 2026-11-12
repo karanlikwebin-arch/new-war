@@ -71,3 +71,4 @@ button:active, button.active { background: linear-gradient(145deg, #687958ed, #3
 body.prestart #crosshair,
 body.prestart #stick,
 body.prestart #buttons { visibility: hidden; }
+body.first-person.aiming #crosshair { visibility: hidden; }
