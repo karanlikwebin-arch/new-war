@@ -244,7 +244,7 @@ function createWeapon(rightHand) {
 function createCameraWeapon(model) {
   if (cameraWeaponPivot) camera.remove(cameraWeaponPivot);
   cameraWeaponPivot = new THREE.Group();
-  cameraWeaponPivot.position.set(0.34, -0.31, -0.62);
+  cameraWeaponPivot.position.set(0.22, -0.3, -0.62);
   camera.add(cameraWeaponPivot);
 
   if (model) {
@@ -264,33 +264,45 @@ function createCameraWeapon(model) {
       }
     });
     cameraWeaponPivot.add(weapon);
+    const muzzle = new THREE.Object3D();
+    muzzle.position.set(0, 0.015, -0.46);
+    cameraWeaponMuzzle = muzzle;
+    cameraWeaponPivot.add(muzzle);
   } else {
     const fallback = activeWeapon === 0 ? makeRifle() : makeSidearm();
     fallback.gun.rotation.y = Math.PI;
     fallback.gun.scale.setScalar(0.8);
     cameraWeaponPivot.add(fallback.gun);
+    cameraWeaponMuzzle = fallback.muzzle;
   }
 
   const sleeve = new THREE.MeshStandardMaterial({ color: 0x4b5143, roughness: 0.95 });
   const glove = new THREE.MeshStandardMaterial({ color: 0x77705a, roughness: 0.95 });
-  const arm = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.13, 0.42), sleeve);
-  arm.position.set(-0.15, -0.23, -0.43);
-  arm.rotation.x = -0.28;
-  cameraWeaponPivot.add(arm);
-  const hand = new THREE.Mesh(new THREE.SphereGeometry(0.075, 8, 6), glove);
-  hand.position.set(-0.1, -0.15, -0.58);
-  cameraWeaponPivot.add(hand);
-  const supportArm = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.13, 0.4), sleeve);
-  supportArm.position.set(0.14, -0.27, -0.38);
-  supportArm.rotation.x = -0.18;
-  cameraWeaponPivot.add(supportArm);
-  const supportHand = new THREE.Mesh(new THREE.SphereGeometry(0.072, 8, 6), glove);
-  supportHand.position.set(0.13, -0.19, -0.59);
-  cameraWeaponPivot.add(supportHand);
-  const muzzle = new THREE.Object3D();
-  muzzle.position.set(0, 0.015, -0.98);
-  cameraWeaponMuzzle = muzzle;
-  cameraWeaponPivot.add(muzzle);
+  const axis = new THREE.Vector3(0, 1, 0);
+  const addForearm = (start, end, radius) => {
+    const direction = new THREE.Vector3().subVectors(end, start);
+    const length = direction.length();
+    const arm = new THREE.Mesh(
+      new THREE.CylinderGeometry(radius * 0.72, radius, length, 10),
+      sleeve,
+    );
+    arm.position.copy(start).add(end).multiplyScalar(0.5);
+    arm.quaternion.setFromUnitVectors(axis, direction.normalize());
+    cameraWeaponPivot.add(arm);
+    const hand = new THREE.Mesh(new THREE.SphereGeometry(0.085, 10, 8), glove);
+    hand.position.copy(end);
+    hand.scale.set(1, 0.72, 1.15);
+    cameraWeaponPivot.add(hand);
+    const cuff = new THREE.Mesh(
+      new THREE.CylinderGeometry(radius * 0.76, radius * 0.76, 0.065, 10),
+      glove,
+    );
+    cuff.position.copy(end).addScaledVector(direction, -0.035);
+    cuff.quaternion.setFromUnitVectors(axis, direction);
+    cameraWeaponPivot.add(cuff);
+  };
+  addForearm(new THREE.Vector3(0.42, -0.78, 0.04), new THREE.Vector3(0.1, -0.13, 0.12), 0.105);
+  addForearm(new THREE.Vector3(-0.42, -0.78, -0.02), new THREE.Vector3(-0.1, -0.13, -0.2), 0.1);
   cameraMuzzleFlash = new THREE.Mesh(
     new THREE.SphereGeometry(0.055, 8, 6),
     new THREE.MeshBasicMaterial({ color: 0xffc36a, transparent: true, opacity: 0.9 }),
@@ -309,7 +321,8 @@ function setCameraMode(value) {
   });
   if (riflePivot) riflePivot.visible = !firstPerson;
   if (cameraWeaponPivot) cameraWeaponPivot.visible = firstPerson;
-  document.querySelector("#camera-mode").classList.toggle("active", firstPerson);
+  document.querySelector("#camera-first").classList.toggle("active", firstPerson);
+  document.querySelector("#camera-third").classList.toggle("active", !firstPerson);
   updateCamera(1);
 }
 
@@ -435,8 +448,9 @@ function loadSoldier() {
     const loaded = Object.keys(actions).length;
     if (loaded !== names.length) console.warn(`Loaded ${loaded}/${names.length} animations`);
     gameReady = true;
+    gameStarted = true;
+    document.body.classList.remove("prestart");
     loading.classList.add("hidden");
-    document.querySelector("#start-screen").classList.remove("hidden");
     setCameraMode(firstPerson);
     playAnimation("Idle");
   }, undefined, (error) => {
@@ -768,16 +782,8 @@ bindButton("weapon", () => {
   if (hand) createWeapon(hand);
   updateWeaponButton();
 });
-bindButton("camera-mode", () => setCameraMode(!firstPerson));
-
-document.querySelector("#continue").addEventListener("pointerdown", (event) => {
-  event.preventDefault();
-  event.stopPropagation();
-  gameStarted = true;
-  document.body.classList.remove("prestart");
-  document.querySelector("#start-screen").classList.add("hidden");
-  updateLocomotion();
-});
+bindButton("camera-first", () => setCameraMode(true));
+bindButton("camera-third", () => setCameraMode(false));
 
 function updateWeaponButton() {
   document.querySelector("#weapon").setAttribute(

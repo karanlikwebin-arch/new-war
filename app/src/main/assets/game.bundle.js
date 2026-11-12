@@ -32560,13 +32560,13 @@ void main() {
     );
     box(gun, "Front_Sight", [0.04, 0.09, 0.025], [0, 0.085, 0.55], gunMetal);
     box(gun, "Rear_Sight", [0.04, 0.055, 0.025], [0, 0.09, 0.05], gunDark);
-    const muzzle = new Object3D();
-    muzzle.position.set(0, 0.01, 0.76);
-    gun.add(muzzle);
+    const muzzle2 = new Object3D();
+    muzzle2.position.set(0, 0.01, 0.76);
+    gun.add(muzzle2);
     const grip = new Object3D();
     grip.position.set(0, -0.01, 0.23);
     gun.add(grip);
-    return { gun, muzzle, grip };
+    return { gun, muzzle: muzzle2, grip };
   }
   function makeSidearm() {
     const gun = new Group();
@@ -32582,13 +32582,13 @@ void main() {
       [-0.2, 0, 0]
     );
     cylinder(gun, "Barrel", 0.018, 0.11, [0, 0.025, 0.22], gunMetal);
-    const muzzle = new Object3D();
-    muzzle.position.set(0, 0.025, 0.29);
-    gun.add(muzzle);
+    const muzzle2 = new Object3D();
+    muzzle2.position.set(0, 0.025, 0.29);
+    gun.add(muzzle2);
     const grip = new Object3D();
     grip.position.set(0, -0.01, 0.1);
     gun.add(grip);
-    return { gun, muzzle, grip };
+    return { gun, muzzle: muzzle2, grip };
   }
   function createWeapon(rightHand) {
     if (riflePivot?.parent) riflePivot.parent.remove(riflePivot);
@@ -32620,13 +32620,13 @@ void main() {
         }
       });
       riflePivot.add(gun);
-      const muzzle = new Object3D();
-      muzzle.position.set(0, 0.015, rifleLength * 0.52);
-      riflePivot.add(muzzle);
+      const muzzle2 = new Object3D();
+      muzzle2.position.set(0, 0.015, rifleLength * 0.52);
+      riflePivot.add(muzzle2);
       const grip = new Object3D();
       grip.position.set(0, -0.02, rifleLength * 0.18);
       riflePivot.add(grip);
-      riflePivot.userData.muzzle = muzzle;
+      riflePivot.userData.muzzle = muzzle2;
       riflePivot.userData.grip = grip;
     } else {
       riflePivot.add(built.gun);
@@ -32648,7 +32648,7 @@ void main() {
   function createCameraWeapon(model) {
     if (cameraWeaponPivot) camera.remove(cameraWeaponPivot);
     cameraWeaponPivot = new Group();
-    cameraWeaponPivot.position.set(0.34, -0.31, -0.62);
+    cameraWeaponPivot.position.set(0.22, -0.3, -0.62);
     camera.add(cameraWeaponPivot);
     if (model) {
       const weapon = model.clone(true);
@@ -32667,32 +32667,44 @@ void main() {
         }
       });
       cameraWeaponPivot.add(weapon);
+      const muzzle2 = new Object3D();
+      muzzle2.position.set(0, 0.015, -0.46);
+      cameraWeaponMuzzle = muzzle2;
+      cameraWeaponPivot.add(muzzle2);
     } else {
       const fallback = activeWeapon === 0 ? makeRifle() : makeSidearm();
       fallback.gun.rotation.y = Math.PI;
       fallback.gun.scale.setScalar(0.8);
       cameraWeaponPivot.add(fallback.gun);
+      cameraWeaponMuzzle = fallback.muzzle;
     }
     const sleeve = new MeshStandardMaterial({ color: 4936003, roughness: 0.95 });
     const glove = new MeshStandardMaterial({ color: 7827546, roughness: 0.95 });
-    const arm = new Mesh(new BoxGeometry(0.12, 0.13, 0.42), sleeve);
-    arm.position.set(-0.15, -0.23, -0.43);
-    arm.rotation.x = -0.28;
-    cameraWeaponPivot.add(arm);
-    const hand = new Mesh(new SphereGeometry(0.075, 8, 6), glove);
-    hand.position.set(-0.1, -0.15, -0.58);
-    cameraWeaponPivot.add(hand);
-    const supportArm = new Mesh(new BoxGeometry(0.12, 0.13, 0.4), sleeve);
-    supportArm.position.set(0.14, -0.27, -0.38);
-    supportArm.rotation.x = -0.18;
-    cameraWeaponPivot.add(supportArm);
-    const supportHand = new Mesh(new SphereGeometry(0.072, 8, 6), glove);
-    supportHand.position.set(0.13, -0.19, -0.59);
-    cameraWeaponPivot.add(supportHand);
-    const muzzle = new Object3D();
-    muzzle.position.set(0, 0.015, -0.98);
-    cameraWeaponMuzzle = muzzle;
-    cameraWeaponPivot.add(muzzle);
+    const axis = new Vector3(0, 1, 0);
+    const addForearm = (start, end, radius) => {
+      const direction = new Vector3().subVectors(end, start);
+      const length = direction.length();
+      const arm = new Mesh(
+        new CylinderGeometry(radius * 0.72, radius, length, 10),
+        sleeve
+      );
+      arm.position.copy(start).add(end).multiplyScalar(0.5);
+      arm.quaternion.setFromUnitVectors(axis, direction.normalize());
+      cameraWeaponPivot.add(arm);
+      const hand = new Mesh(new SphereGeometry(0.085, 10, 8), glove);
+      hand.position.copy(end);
+      hand.scale.set(1, 0.72, 1.15);
+      cameraWeaponPivot.add(hand);
+      const cuff = new Mesh(
+        new CylinderGeometry(radius * 0.76, radius * 0.76, 0.065, 10),
+        glove
+      );
+      cuff.position.copy(end).addScaledVector(direction, -0.035);
+      cuff.quaternion.setFromUnitVectors(axis, direction);
+      cameraWeaponPivot.add(cuff);
+    };
+    addForearm(new Vector3(0.42, -0.78, 0.04), new Vector3(0.1, -0.13, 0.12), 0.105);
+    addForearm(new Vector3(-0.42, -0.78, -0.02), new Vector3(-0.1, -0.13, -0.2), 0.1);
     cameraMuzzleFlash = new Mesh(
       new SphereGeometry(0.055, 8, 6),
       new MeshBasicMaterial({ color: 16761706, transparent: true, opacity: 0.9 })
@@ -32710,7 +32722,8 @@ void main() {
     });
     if (riflePivot) riflePivot.visible = !firstPerson;
     if (cameraWeaponPivot) cameraWeaponPivot.visible = firstPerson;
-    document.querySelector("#camera-mode").classList.toggle("active", firstPerson);
+    document.querySelector("#camera-first").classList.toggle("active", firstPerson);
+    document.querySelector("#camera-third").classList.toggle("active", !firstPerson);
     updateCamera(1);
   }
   function addObstacle(x, z, width, height, depth, material) {
@@ -32827,8 +32840,9 @@ void main() {
       const loaded = Object.keys(actions).length;
       if (loaded !== names.length) console.warn(`Loaded ${loaded}/${names.length} animations`);
       gameReady = true;
+      gameStarted = true;
+      document.body.classList.remove("prestart");
       loading2.classList.add("hidden");
-      document.querySelector("#start-screen").classList.remove("hidden");
       setCameraMode(firstPerson);
       playAnimation("Idle");
     }, void 0, (error) => {
@@ -33140,15 +33154,8 @@ void main() {
     if (hand) createWeapon(hand);
     updateWeaponButton();
   });
-  bindButton("camera-mode", () => setCameraMode(!firstPerson));
-  document.querySelector("#continue").addEventListener("pointerdown", (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    gameStarted = true;
-    document.body.classList.remove("prestart");
-    document.querySelector("#start-screen").classList.add("hidden");
-    updateLocomotion();
-  });
+  bindButton("camera-first", () => setCameraMode(true));
+  bindButton("camera-third", () => setCameraMode(false));
   function updateWeaponButton() {
     document.querySelector("#weapon").setAttribute(
       "aria-label",

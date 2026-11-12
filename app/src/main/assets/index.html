@@ -15,21 +15,31 @@
     <div id="stick-knob"></div>
   </div>
   <div id="buttons" class="control">
-    <button id="fire" class="fire" aria-label="Ateş">●</button>
-    <button id="aim" aria-label="Nişan">⌖</button>
-    <button id="jump" aria-label="Zıpla">↑</button>
-    <button id="prone" aria-label="Yat">↓</button>
-    <button id="weapon" aria-label="Silah değiştir">⇄</button>
-    <button id="camera-mode" aria-label="Kamera görünümünü değiştir">◉</button>
+    <div id="camera-modes" aria-label="Kamera görünümü">
+      <button id="camera-first" class="camera-mode active" aria-label="Birinci şahıs">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8V5h3m10 0h3v3M4 16v3h3m10 0h3v-3"/><circle cx="12" cy="10" r="2.5"/><path d="M7.5 18c.7-2.1 2.2-3.2 4.5-3.2s3.8 1.1 4.5 3.2"/></svg>
+      </button>
+      <button id="camera-third" class="camera-mode" aria-label="Üçüncü şahıs">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="6.5" r="2.5"/><path d="M7.5 20v-3.3a4.5 4.5 0 0 1 9 0V20M4 20h16M6 12l-2 2m14-2 2 2"/></svg>
+      </button>
+    </div>
+    <button id="fire" class="fire" aria-label="Ateş">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/></svg>
+    </button>
+    <button id="aim" aria-label="Nişan">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7"/><path d="M12 2v4m0 12v4M2 12h4m12 0h4"/></svg>
+    </button>
+    <button id="jump" aria-label="Zıpla">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20V4m-6 6 6-6 6 6"/></svg>
+    </button>
+    <button id="prone" aria-label="Yat / kalk">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="13" r="2"/><path d="m8 14 5-2 4 2h3M10 14l-2 5m5-7 2-4m-1 6 3 4"/></svg>
+    </button>
+    <button id="weapon" aria-label="Silah değiştir">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h15l-3-3m4 11H5l3 3"/></svg>
+    </button>
   </div>
   <div id="loading">3D karakter ve animasyonlar yukleniyor...</div>
-  <div id="start-screen" class="hidden">
-    <div class="start-card">
-      <strong>NEW WAR</strong>
-      <span>EGITIM SAHASINA HAZIRSIN</span>
-      <button id="continue">DEVAM ET</button>
-    </div>
-  </div>
   <script src="game.bundle.js"></script>
 </body>
 </html>

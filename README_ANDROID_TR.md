@@ -27,7 +27,9 @@ APK: `app/build/outputs/apk/debug/app-debug.apk`
 
 Yatay ekranda sol joystick hareketi, sag ekranda saga surukleme saga; sola surukleme
 sola doner. Yukari/asagi surukleme kamera egimini degistirir. Varsayilan gorunum birinci
-sahistir; ustteki kamera simgesi birinci/ucuncu sahis gorunumunu degistirir.
+sahistir; ustteki ikonlu dugmelerle birinci/ucuncu sahis secilir. Karakter yuklenince
+oyun otomatik baslar, acilis ekraninda "DEVAM ET" dugmesi yoktur. Ates/nisan,
+zipla/yat-kalk, silah degistirme ve kamera dugmeleri ikonlarla gosterilir.
 Atis sirasinda Backstep klibi ile silah geri tepmesi birlikte oynatilir. Sarjor mermi
 bitince otomatik dolar. Ekranda skor/mermi/hedef yazisi yoktur.
 Hedef tahtasina uc isabet skor kazandirir. Telefon/emulator bagliysa

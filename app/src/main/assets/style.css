@@ -32,24 +32,36 @@ html, body {
 #buttons { inset: 0; pointer-events: none; }
 button {
   position: absolute; width: min(14vw, 72px); height: min(14vw, 72px);
-  border: 2px solid #c5cabb99; border-radius: 50%; color: #fff;
-  background: #333c35bb; font-weight: bold; font-size: clamp(18px, 4vw, 27px);
-  text-shadow: 0 1px 2px #000; pointer-events: auto; touch-action: none;
+  display: grid; place-items: center;
+  border: 1px solid #e1e9e266; border-radius: 50%; color: #edf2e8;
+  background: linear-gradient(145deg, #34423bd9, #18221ed9);
+  box-shadow: 0 5px 16px #0006, inset 0 1px 0 #ffffff20;
+  pointer-events: auto; touch-action: none; -webkit-tap-highlight-color: transparent;
 }
-button:active, button.active { background: #b6ad8acc; border-color: #f1e7c7; }
+button svg { width: 52%; height: 52%; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+button:active, button.active { background: linear-gradient(145deg, #687958ed, #343f30ed); border-color: #dce8c2; }
 #fire { width: min(17vw, 82px); height: min(17vw, 82px); right: 7%; bottom: 8%; }
-#fire.fire { background: #8a332bbd; border-color: #d78970; }
+#fire { color: #ffe6d9; background: linear-gradient(145deg, #a84638ed, #672a25ed); border-color: #e89a7d; }
 #aim { right: 22%; bottom: 8%; }
 #jump { right: 4%; bottom: 34%; }
 #prone { right: 22%; bottom: 34%; }
 #weapon {
   right: 36%; bottom: 8%; width: min(10vw, 48px); height: min(10vw, 48px);
-  border-radius: 50%; background: #4a5948dc; border-color: #c9d2b2;
-  font-size: clamp(20px, 4vw, 28px);
+  color: #e8eddd;
 }
-#camera-mode {
-  right: 4%; top: 8%; width: min(10vw, 48px); height: min(10vw, 48px);
-  font-size: clamp(17px, 3.2vw, 23px);
+#camera-modes {
+  position: absolute; top: 5%; right: 4%; display: flex; gap: 8px;
+  padding: 5px; border: 1px solid #e1e9e244; border-radius: 30px;
+  background: #17211dcc; box-shadow: 0 5px 16px #0006;
+  pointer-events: none;
+}
+.camera-mode {
+  position: static; width: min(11vw, 46px); height: min(11vw, 46px);
+  border-color: transparent; background: transparent; box-shadow: none;
+}
+.camera-mode.active {
+  color: #f5ffe7; background: linear-gradient(145deg, #71865bdc, #3f5038dc);
+  border-color: #dce8c277; box-shadow: 0 2px 8px #0005, inset 0 1px 0 #ffffff30;
 }
 #loading {
   z-index: 6; left: 50%; top: 50%; transform: translate(-50%, -50%);
@@ -57,23 +69,6 @@ button:active, button.active { background: #b6ad8acc; border-color: #f1e7c7; }
   font-size: 14px; pointer-events: none;
 }
 #loading.hidden { display: none; }
-#start-screen {
-  position: absolute; inset: 0; z-index: 5; display: grid; place-items: center;
-  background: #10151299; backdrop-filter: blur(3px);
-}
-#start-screen.hidden { display: none; }
-.start-card {
-  display: flex; flex-direction: column; align-items: center; gap: 12px;
-  padding: clamp(24px, 6vw, 48px); border: 1px solid #d5dac066;
-  border-radius: 16px; background: #18201ddf; text-align: center;
-}
-.start-card strong { font-size: clamp(26px, 6vw, 44px); letter-spacing: 3px; }
-.start-card span { font-size: clamp(11px, 2.4vw, 15px); color: #d3d9bd; }
-#continue {
-  position: static; width: min(52vw, 240px); height: 54px;
-  margin-top: 10px; border-radius: 12px; background: #566a4ddd;
-  border-color: #d5dfbd; font-size: 16px;
-}
 body.prestart #crosshair,
 body.prestart #stick,
 body.prestart #buttons { visibility: hidden; }
