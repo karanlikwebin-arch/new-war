@@ -1,0 +1,13 @@
+{
+  "name": "new-war-android-game",
+  "private": true,
+  "scripts": {
+    "build": "esbuild src/game.js --bundle --format=iife --outfile=../app/src/main/assets/game.bundle.js"
+  },
+  "dependencies": {
+    "three": "0.180.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.0"
+  }
+}
