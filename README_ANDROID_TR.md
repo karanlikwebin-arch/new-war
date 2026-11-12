@@ -30,6 +30,8 @@ sola doner. Yukari/asagi surukleme kamera egimini degistirir. Varsayilan gorunum
 sahistir; ustteki ikonlu dugmelerle birinci/ucuncu sahis secilir. Karakter yuklenince
 oyun otomatik baslar, acilis ekraninda "DEVAM ET" dugmesi yoktur. Ates/nisan,
 zipla/yat-kalk, silah degistirme ve kamera dugmeleri ikonlarla gosterilir.
+Silah karakterin sag el kemigine baglanir; iki kolun IK pozlari ates ve bekleme
+durumlarinda tutusu korur.
 Atis sirasinda Backstep klibi ile silah geri tepmesi birlikte oynatilir. Sarjor mermi
 bitince otomatik dolar. Ekranda skor/mermi/hedef yazisi yoktur.
 Hedef tahtasina uc isabet skor kazandirir. Telefon/emulator bagliysa

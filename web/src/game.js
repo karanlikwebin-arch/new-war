@@ -108,6 +108,8 @@ let gameReady = false;
 let gameStarted = false;
 let firstPerson = true;
 let audioContext = null;
+let rightShoulder = null;
+let rightArmChain = null;
 let leftArmChain = null;
 
 const gunMetal = new THREE.MeshStandardMaterial({
@@ -408,6 +410,12 @@ function updateLocomotion() {
   }
 }
 
+function getRigBone(part) {
+  return soldier?.getObjectByName(`mixamorig${part}`)
+    ?? soldier?.getObjectByName(`mixamorig:${part}`)
+    ?? null;
+}
+
 function onAnimationFinished(event) {
   if (actions.Jump && event.action === actions.Jump && jumping) {
     jumping = false;
@@ -438,11 +446,18 @@ function loadSoldier() {
       if (clip) actions[name] = mixer.clipAction(clip);
     }
 
-    const rightHand = soldier.getObjectByName("mixamorig:RightHand");
+    const rightHand = getRigBone("RightHand");
     if (rightHand) createWeapon(rightHand);
-    const leftArm = soldier.getObjectByName("mixamorig:LeftArm");
-    const leftForeArm = soldier.getObjectByName("mixamorig:LeftForeArm");
-    const leftHand = soldier.getObjectByName("mixamorig:LeftHand");
+    else console.error("Weapon attachment failed: right-hand bone is missing from soldier.glb");
+    rightShoulder = getRigBone("RightShoulder");
+    const rightArm = getRigBone("RightArm");
+    const rightForeArm = getRigBone("RightForeArm");
+    if (rightArm && rightForeArm && rightHand)
+      rightArmChain = [rightForeArm, rightArm, rightHand];
+    else console.error("Weapon hold pose unavailable: right arm chain is incomplete");
+    const leftArm = getRigBone("LeftArm");
+    const leftForeArm = getRigBone("LeftForeArm");
+    const leftHand = getRigBone("LeftHand");
     if (leftArm && leftForeArm && leftHand) leftArmChain = [leftForeArm, leftArm, leftHand];
 
     const loaded = Object.keys(actions).length;
@@ -464,7 +479,7 @@ function loadWeaponModels() {
   for (const [index, path] of ["ar70_pbr.glb", "akm.glb"].entries()) {
     loader.load(path, (gltf) => {
       weaponModels[index] = gltf.scene;
-      const hand = soldier?.getObjectByName("mixamorig:RightHand");
+      const hand = getRigBone("RightHand");
       if (hand && index === activeWeapon) createWeapon(hand);
       updateWeaponButton();
     }, undefined, (error) => {
@@ -616,20 +631,15 @@ function updateCamera(dt) {
   camera.updateProjectionMatrix();
 }
 
-function solveLeftHandIK() {
-  if (!leftArmChain || !riflePivot?.userData.grip) return;
-  const [foreArm, upperArm, hand] = leftArmChain;
-  riflePivot.userData.grip.getWorldPosition(ikTarget);
-  const moving = Math.abs(joyX) + Math.abs(joyY) > 0.15;
-  const blend = aiming || fireHeld ? 0.8 : moving ? 0.38 : 0.62;
-
-  for (let iteration = 0; iteration < 3; iteration++) {
+function solveArmIK(chain, target, blend) {
+  const [foreArm, upperArm, hand] = chain;
+  for (let iteration = 0; iteration < 4; iteration++) {
     for (const link of [foreArm, upperArm]) {
       playerRoot.updateMatrixWorld(true);
       link.getWorldPosition(ikOrigin);
       hand.getWorldPosition(ikEffector);
       ikCurrent.subVectors(ikEffector, ikOrigin);
-      ikDesired.subVectors(ikTarget, ikOrigin);
+      ikDesired.subVectors(target, ikOrigin);
       if (ikCurrent.lengthSq() < 1e-8 || ikDesired.lengthSq() < 1e-8) continue;
       ikDelta.setFromUnitVectors(ikCurrent.normalize(), ikDesired.normalize());
       link.getWorldQuaternion(ikWorld);
@@ -639,6 +649,26 @@ function solveLeftHandIK() {
       link.quaternion.slerp(ikLocal, blend);
     }
   }
+}
+
+function solveWeaponHoldPose() {
+  if (rightShoulder && rightArmChain) {
+    forward.set(Math.sin(yaw), 0, Math.cos(yaw));
+    right.set(Math.cos(yaw), 0, -Math.sin(yaw));
+    playerRoot.updateMatrixWorld(true);
+    rightShoulder.getWorldPosition(ikOrigin);
+    ikTarget.set(
+      ikOrigin.x - right.x * 0.22 + forward.x * 0.28,
+      ikOrigin.y - (prone ? 0.13 : 0.25) + pitch * 0.15,
+      ikOrigin.z - right.z * 0.22 + forward.z * 0.28,
+    );
+    solveArmIK(rightArmChain, ikTarget, 0.82);
+  }
+  if (!leftArmChain || !riflePivot?.userData.grip) return;
+  riflePivot.userData.grip.getWorldPosition(ikTarget);
+  const moving = Math.abs(joyX) + Math.abs(joyY) > 0.15;
+  const blend = aiming || fireHeld ? 0.82 : moving ? 0.7 : 0.82;
+  solveArmIK(leftArmChain, ikTarget, blend);
 }
 
 function collides(x, z) {
@@ -729,7 +759,7 @@ function update(dt) {
   }
   if (!dead) playerRoot.rotation.y = yaw;
   if (mixer) mixer.update(dt);
-  if (!firstPerson) solveLeftHandIK();
+  if (!firstPerson) solveWeaponHoldPose();
   updateCamera(dt);
   if (fireHeld) shoot();
 }
@@ -778,7 +808,7 @@ bindButton("jump", beginJump);
 bindButton("prone", toggleProne);
 bindButton("weapon", () => {
   activeWeapon = (activeWeapon + 1) % 2;
-  const hand = soldier?.getObjectByName("mixamorig:RightHand");
+  const hand = getRigBone("RightHand");
   if (hand) createWeapon(hand);
   updateWeaponButton();
 });
