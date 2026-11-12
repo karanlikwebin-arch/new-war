@@ -79,6 +79,8 @@ let soldier = null;
 let mixer = null;
 let currentAction = null;
 let actions = {};
+let weaponHand = null;
+let weaponMount = null;
 let riflePivot = null;
 let cameraWeaponPivot = null;
 let cameraWeaponMuzzle = null;
@@ -125,6 +127,11 @@ let audioContext = null;
 let rightShoulder = null;
 let rightArmChain = null;
 let leftArmChain = null;
+const worldWeaponQuaternion = new THREE.Quaternion();
+const handWorldQuaternion = new THREE.Quaternion();
+const weaponPitchQuaternion = new THREE.Quaternion();
+const weaponPitchAxis = new THREE.Vector3(1, 0, 0);
+const worldUp = new THREE.Vector3(0, 1, 0);
 
 const gunMetal = new THREE.MeshStandardMaterial({
   color: 0x292f2c, metalness: 0.68, roughness: 0.38,
@@ -157,6 +164,37 @@ function cylinder(parent, name, radius, length, position, material) {
   mesh.rotation.x = Math.PI / 2;
   parent.add(mesh);
   return mesh;
+}
+
+function makeImportedWeapon(model, targetForward) {
+  const weapon = model.clone(true);
+  weapon.updateMatrixWorld(true);
+  const bounds = new THREE.Box3().setFromObject(weapon);
+  const center = bounds.getCenter(new THREE.Vector3());
+  const size = bounds.getSize(new THREE.Vector3());
+  const length = Math.max(size.x, size.y, size.z);
+  const fitScale = 1.08 / length;
+  const muzzleAxis = activeWeapon === 0 ? -1 : 1;
+  const rotationY = -targetForward * muzzleAxis * Math.PI / 2;
+  const handGrip = new THREE.Vector3(
+    -muzzleAxis * size.x * 0.18,
+    -size.y * 0.12,
+    0,
+  );
+  const translation = center.add(handGrip)
+    .applyAxisAngle(worldUp, rotationY)
+    .multiplyScalar(-fitScale);
+  weapon.position.copy(translation);
+  weapon.rotation.y = rotationY;
+  weapon.scale.setScalar(fitScale);
+  weapon.traverse((object) => {
+    if (object.isMesh) {
+      object.frustumCulled = false;
+      object.castShadow = false;
+      object.receiveShadow = false;
+    }
+  });
+  return { weapon, size, fitScale, length: 1.08 };
 }
 
 function makeRifle() {
@@ -201,49 +239,44 @@ function makeSidearm() {
 }
 
 function createWeapon(rightHand) {
-  if (riflePivot?.parent) riflePivot.parent.remove(riflePivot);
+  if (weaponMount?.parent) weaponMount.parent.remove(weaponMount);
+  weaponHand = rightHand;
+  weaponMount = new THREE.Group();
+  weaponMount.name = "Weapon_Hand_Mount";
+  rightHand.add(weaponMount);
   const model = weaponModels[activeWeapon];
   const built = model ? null : activeWeapon === 0 ? makeRifle() : makeSidearm();
+  const targetForward = 1;
   riflePivot = new THREE.Group();
   riflePivot.name = "Weapon_Recoil_Pivot";
-  riflePivot.position.set(0.015, -0.035, 0.04);
-  riflePivot.rotation.set(0, 0, 0);
+  weaponMount.add(riflePivot);
   if (model) {
-    const gun = new THREE.Group();
-    gun.name = activeWeapon === 0 ? "AR70_Model" : "AKM_Model";
-    const modelRoot = model.clone(true);
-    modelRoot.updateMatrixWorld(true);
-    const bounds = new THREE.Box3().setFromObject(modelRoot);
-    const center = bounds.getCenter(new THREE.Vector3());
-    const size = bounds.getSize(new THREE.Vector3());
-    const rifleLength = 1.05;
-    const fitScale = rifleLength / Math.max(size.x, size.y, size.z);
-    modelRoot.position.sub(center);
-    gun.add(modelRoot);
-    gun.rotation.y = -Math.PI / 2;
-    gun.scale.setScalar(fitScale);
-    gun.position.set(0, -0.08, 0);
-    gun.traverse((object) => {
-      if (object.isMesh) {
-        object.castShadow = false;
-        object.receiveShadow = false;
-      }
-    });
-    riflePivot.add(gun);
+    const { weapon, size, fitScale, length } = makeImportedWeapon(model, targetForward);
+    weapon.name = activeWeapon === 0 ? "AR70_Model" : "AKM_Model";
+    riflePivot.add(weapon);
     const muzzle = new THREE.Object3D();
-    muzzle.position.set(0, 0.015, rifleLength * 0.52);
+    muzzle.position.set(0, 0, targetForward * length * 0.68);
     riflePivot.add(muzzle);
     const grip = new THREE.Object3D();
-    grip.position.set(0, -0.02, rifleLength * 0.18);
+    grip.position.set(0, -size.y * fitScale * 0.04, targetForward * length * 0.3);
     riflePivot.add(grip);
     riflePivot.userData.muzzle = muzzle;
     riflePivot.userData.grip = grip;
   } else {
+    built.gun.rotation.y = 0;
+    built.gun.position.copy(built.grip.position)
+      .applyAxisAngle(worldUp, built.gun.rotation.y)
+      .negate();
     riflePivot.add(built.gun);
-    riflePivot.userData.muzzle = built.muzzle;
-    riflePivot.userData.grip = built.grip;
+    const muzzle = new THREE.Object3D();
+    muzzle.position.set(0, 0, 0.48);
+    riflePivot.add(muzzle);
+    const grip = new THREE.Object3D();
+    grip.position.set(0, -0.05, 0.34);
+    riflePivot.add(grip);
+    riflePivot.userData.muzzle = muzzle;
+    riflePivot.userData.grip = grip;
   }
-  rightHand.add(riflePivot);
 
   muzzleFlash = new THREE.Mesh(
     new THREE.SphereGeometry(0.075, 8, 6),
@@ -254,10 +287,10 @@ function createWeapon(rightHand) {
   muzzleLight = new THREE.PointLight(0xff9b43, 0, 2.2);
   riflePivot.userData.muzzle.add(muzzleLight);
   riflePivot.visible = !firstPerson;
-  createCameraWeapon(model);
+  createCameraWeapon(model, -1);
 }
 
-function createCameraWeapon(model) {
+function createCameraWeapon(model, targetForward) {
   if (cameraWeaponPivot?.parent) cameraWeaponPivot.parent.remove(cameraWeaponPivot);
   cameraWeaponPivot = new THREE.Group();
   cameraWeaponPivot.position.set(0.22, -0.3, -0.62);
@@ -265,29 +298,18 @@ function createCameraWeapon(model) {
   let muzzle;
 
   if (model) {
-    const weapon = model.clone(true);
-    weapon.updateMatrixWorld(true);
-    const bounds = new THREE.Box3().setFromObject(weapon);
-    const center = bounds.getCenter(new THREE.Vector3());
-    const size = bounds.getSize(new THREE.Vector3());
-    weapon.position.sub(center);
-    weapon.rotation.y = Math.PI / 2;
-    weapon.scale.setScalar(1.02 / Math.max(size.x, size.y, size.z));
-    weapon.traverse((object) => {
-      if (object.isMesh) {
-        object.frustumCulled = false;
-        object.castShadow = false;
-        object.receiveShadow = false;
-      }
-    });
+    const { weapon, length } = makeImportedWeapon(model, targetForward);
     cameraWeaponPivot.add(weapon);
     muzzle = new THREE.Object3D();
-    muzzle.position.set(0, 0.015, -0.46);
+    muzzle.position.set(0, 0, targetForward * length * 0.68);
     cameraWeaponPivot.add(muzzle);
   } else {
     const fallback = activeWeapon === 0 ? makeRifle() : makeSidearm();
     fallback.gun.rotation.y = Math.PI;
     fallback.gun.scale.setScalar(0.8);
+    fallback.gun.position.copy(fallback.grip.position)
+      .applyAxisAngle(worldUp, fallback.gun.rotation.y)
+      .multiplyScalar(-fallback.gun.scale.x);
     cameraWeaponPivot.add(fallback.gun);
     muzzle = fallback.muzzle;
   }
@@ -730,9 +752,9 @@ function solveWeaponHoldPose() {
     playerRoot.updateMatrixWorld(true);
     rightShoulder.getWorldPosition(ikOrigin);
     ikTarget.set(
-      ikOrigin.x - right.x * 0.22 + forward.x * 0.28,
-      ikOrigin.y - (prone ? 0.13 : 0.25) + pitch * 0.15,
-      ikOrigin.z - right.z * 0.22 + forward.z * 0.28,
+      ikOrigin.x - right.x * 0.08 + forward.x * 0.28,
+      ikOrigin.y - (prone ? 0.1 : 0.18) + pitch * 0.15,
+      ikOrigin.z - right.z * 0.08 + forward.z * 0.28,
     );
     solveArmIK(rightArmChain, ikTarget, 0.82);
   }
@@ -741,6 +763,16 @@ function solveWeaponHoldPose() {
   const moving = Math.abs(joyX) + Math.abs(joyY) > 0.15;
   const blend = aiming || fireHeld ? 0.82 : moving ? 0.7 : 0.82;
   solveArmIK(leftArmChain, ikTarget, blend);
+}
+
+function updateWeaponMount() {
+  if (!weaponHand || !weaponMount || firstPerson) return;
+  playerRoot.updateMatrixWorld(true);
+  weaponHand.getWorldQuaternion(handWorldQuaternion);
+  playerRoot.getWorldQuaternion(worldWeaponQuaternion);
+  weaponPitchQuaternion.setFromAxisAngle(weaponPitchAxis, -pitch);
+  worldWeaponQuaternion.multiply(weaponPitchQuaternion);
+  weaponMount.quaternion.copy(handWorldQuaternion.invert().multiply(worldWeaponQuaternion));
 }
 
 function collides(x, z) {
@@ -793,9 +825,9 @@ function update(dt) {
     const reloadPhase = reloadTimer > 0
       ? Math.sin(((RELOAD_SECONDS - reloadTimer) / RELOAD_SECONDS) * Math.PI)
       : 0;
-    riflePivot.position.z = 0.04 - recoil * 0.055;
-    riflePivot.position.y = -0.035 - reloadPhase * 0.11;
-    riflePivot.rotation.x = -pitch + reloadPhase * 0.26;
+    riflePivot.position.z = -recoil * 0.055;
+    riflePivot.position.y = -reloadPhase * 0.11;
+    riflePivot.rotation.x = reloadPhase * 0.26 - recoil * 0.025;
   }
   if (cameraWeaponPivot) {
     const reloadPhase = reloadTimer > 0
@@ -844,7 +876,10 @@ function update(dt) {
   }
   if (!dead && !cameraOrbit) playerRoot.rotation.y = yaw;
   if (mixer) mixer.update(dt);
-  if (!firstPerson) solveWeaponHoldPose();
+  if (!firstPerson) {
+    updateWeaponMount();
+    solveWeaponHoldPose();
+  }
   updateCamera(dt);
   if (fireHeld) shoot();
 }

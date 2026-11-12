@@ -37,6 +37,9 @@ Silah karakterin sag el kemigine baglanir; iki kolun IK pozlari ates ve bekleme
 durumlarinda tutusu korur.
 Birinci sahis namlu parlamasi kamera silahinin namlu nesnesine baglidir; karakter
 baslatma hatalari ekranda acik hata mesaji olarak gosterilir.
+Silah modeli tetik kabzasi sag el pivotuna oturacak sekilde mesh olcek ve eksenlerine
+gore hizalanir; dipcik omuza yakin, namlu ileri bakacak sekilde AR-70 ve AKM eksenleri
+ayri ayri kalibre edilir. Ucuncu sahista silah eli ve namlu pitch'i karakterle izler.
 Birinci sahis gorunumunde silah hedefe yaklastirilarak nisan pozuna alinabilir;
 ADS sirasinda kamera FOV'u 42 dereceye yumuşakca iner. Viewmodel ayri bir sahnede
 ikinci render gecisiyle cizilir ve ana sahnenin depth tamponu temizlenir; bu,
