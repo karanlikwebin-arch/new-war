@@ -32,6 +32,8 @@ oyun otomatik baslar, acilis ekraninda "DEVAM ET" dugmesi yoktur. Ates/nisan,
 zipla/yat-kalk, silah degistirme ve kamera dugmeleri ikonlarla gosterilir.
 Silah karakterin sag el kemigine baglanir; iki kolun IK pozlari ates ve bekleme
 durumlarinda tutusu korur.
+Birinci sahis namlu parlamasi kamera silahinin namlu nesnesine baglidir; karakter
+baslatma hatalari ekranda acik hata mesaji olarak gosterilir.
 Atis sirasinda Backstep klibi ile silah geri tepmesi birlikte oynatilir. Sarjor mermi
 bitince otomatik dolar. Ekranda skor/mermi/hedef yazisi yoktur.
 Hedef tahtasina uc isabet skor kazandirir. Telefon/emulator bagliysa

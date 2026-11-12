@@ -32562,13 +32562,13 @@ void main() {
     );
     box(gun, "Front_Sight", [0.04, 0.09, 0.025], [0, 0.085, 0.55], gunMetal);
     box(gun, "Rear_Sight", [0.04, 0.055, 0.025], [0, 0.09, 0.05], gunDark);
-    const muzzle2 = new Object3D();
-    muzzle2.position.set(0, 0.01, 0.76);
-    gun.add(muzzle2);
+    const muzzle = new Object3D();
+    muzzle.position.set(0, 0.01, 0.76);
+    gun.add(muzzle);
     const grip = new Object3D();
     grip.position.set(0, -0.01, 0.23);
     gun.add(grip);
-    return { gun, muzzle: muzzle2, grip };
+    return { gun, muzzle, grip };
   }
   function makeSidearm() {
     const gun = new Group();
@@ -32584,13 +32584,13 @@ void main() {
       [-0.2, 0, 0]
     );
     cylinder(gun, "Barrel", 0.018, 0.11, [0, 0.025, 0.22], gunMetal);
-    const muzzle2 = new Object3D();
-    muzzle2.position.set(0, 0.025, 0.29);
-    gun.add(muzzle2);
+    const muzzle = new Object3D();
+    muzzle.position.set(0, 0.025, 0.29);
+    gun.add(muzzle);
     const grip = new Object3D();
     grip.position.set(0, -0.01, 0.1);
     gun.add(grip);
-    return { gun, muzzle: muzzle2, grip };
+    return { gun, muzzle, grip };
   }
   function createWeapon(rightHand) {
     if (riflePivot?.parent) riflePivot.parent.remove(riflePivot);
@@ -32622,13 +32622,13 @@ void main() {
         }
       });
       riflePivot.add(gun);
-      const muzzle2 = new Object3D();
-      muzzle2.position.set(0, 0.015, rifleLength * 0.52);
-      riflePivot.add(muzzle2);
+      const muzzle = new Object3D();
+      muzzle.position.set(0, 0.015, rifleLength * 0.52);
+      riflePivot.add(muzzle);
       const grip = new Object3D();
       grip.position.set(0, -0.02, rifleLength * 0.18);
       riflePivot.add(grip);
-      riflePivot.userData.muzzle = muzzle2;
+      riflePivot.userData.muzzle = muzzle;
       riflePivot.userData.grip = grip;
     } else {
       riflePivot.add(built.gun);
@@ -32652,6 +32652,7 @@ void main() {
     cameraWeaponPivot = new Group();
     cameraWeaponPivot.position.set(0.22, -0.3, -0.62);
     camera.add(cameraWeaponPivot);
+    let muzzle;
     if (model) {
       const weapon = model.clone(true);
       weapon.updateMatrixWorld(true);
@@ -32669,17 +32670,17 @@ void main() {
         }
       });
       cameraWeaponPivot.add(weapon);
-      const muzzle2 = new Object3D();
-      muzzle2.position.set(0, 0.015, -0.46);
-      cameraWeaponMuzzle = muzzle2;
-      cameraWeaponPivot.add(muzzle2);
+      muzzle = new Object3D();
+      muzzle.position.set(0, 0.015, -0.46);
+      cameraWeaponPivot.add(muzzle);
     } else {
       const fallback = activeWeapon === 0 ? makeRifle() : makeSidearm();
       fallback.gun.rotation.y = Math.PI;
       fallback.gun.scale.setScalar(0.8);
       cameraWeaponPivot.add(fallback.gun);
-      cameraWeaponMuzzle = fallback.muzzle;
+      muzzle = fallback.muzzle;
     }
+    cameraWeaponMuzzle = muzzle;
     const sleeve = new MeshStandardMaterial({ color: 4936003, roughness: 0.95 });
     const glove = new MeshStandardMaterial({ color: 7827546, roughness: 0.95 });
     const axis = new Vector3(0, 1, 0);
@@ -32712,9 +32713,9 @@ void main() {
       new MeshBasicMaterial({ color: 16761706, transparent: true, opacity: 0.9 })
     );
     cameraMuzzleFlash.visible = false;
-    muzzle.add(cameraMuzzleFlash);
+    cameraWeaponMuzzle.add(cameraMuzzleFlash);
     cameraMuzzleLight = new PointLight(16751427, 0, 1.8);
-    muzzle.add(cameraMuzzleLight);
+    cameraWeaponMuzzle.add(cameraMuzzleLight);
     cameraWeaponPivot.visible = firstPerson;
   }
   function setCameraMode(value) {
@@ -32825,41 +32826,51 @@ void main() {
   function loadSoldier() {
     const loader = new GLTFLoader();
     loader.load("soldier.glb", (gltf) => {
-      soldier = gltf.scene;
-      soldier.name = "Rigged_Soldier";
-      playerRoot.add(soldier);
-      gltfAnimations = gltf.animations;
-      mixer = new AnimationMixer(soldier);
-      mixer.addEventListener("finished", onAnimationFinished);
-      const names = ["Idle", "Walk", "Backstep", "Jump", "Landing", "Prone", "Death"];
-      for (const name of names) {
-        const clip = findClip(name);
-        if (clip) actions[name] = mixer.clipAction(clip);
+      try {
+        soldier = gltf.scene;
+        soldier.name = "Rigged_Soldier";
+        playerRoot.add(soldier);
+        gltfAnimations = gltf.animations;
+        mixer = new AnimationMixer(soldier);
+        mixer.addEventListener("finished", onAnimationFinished);
+        const names = ["Idle", "Walk", "Backstep", "Jump", "Landing", "Prone", "Death"];
+        for (const name of names) {
+          const clip = findClip(name);
+          if (clip) actions[name] = mixer.clipAction(clip);
+        }
+        const rightHand = getRigBone("RightHand");
+        if (!rightHand) throw new Error("soldier.glb does not contain a RightHand bone");
+        rightShoulder = getRigBone("RightShoulder");
+        const rightArm = getRigBone("RightArm");
+        const rightForeArm = getRigBone("RightForeArm");
+        if (rightShoulder && rightArm && rightForeArm)
+          rightArmChain = [rightForeArm, rightArm, rightHand];
+        else console.warn("Right arm IK bones are incomplete; weapon will still attach to the hand");
+        const leftArm = getRigBone("LeftArm");
+        const leftForeArm = getRigBone("LeftForeArm");
+        const leftHand = getRigBone("LeftHand");
+        if (leftArm && leftForeArm && leftHand) leftArmChain = [leftForeArm, leftArm, leftHand];
+        else console.warn("Left arm IK bones are incomplete; two-handed hold is unavailable");
+        createWeapon(rightHand);
+        const loaded = Object.keys(actions).length;
+        if (!actions.Idle) throw new Error("soldier.glb does not contain the Idle animation");
+        if (loaded !== names.length) console.warn(`Loaded ${loaded}/${names.length} animations`);
+        gameReady = true;
+        gameStarted = true;
+        document.body.classList.remove("prestart");
+        loading2.classList.add("hidden");
+        setCameraMode(firstPerson);
+        playAnimation("Idle");
+      } catch (error) {
+        gameReady = false;
+        console.error("Soldier initialization failed", error);
+        loading2.classList.remove("hidden");
+        loading2.textContent = `Karakter ba\u015Flat\u0131lamad\u0131: ${error.message}`;
       }
-      const rightHand = getRigBone("RightHand");
-      if (rightHand) createWeapon(rightHand);
-      else console.error("Weapon attachment failed: right-hand bone is missing from soldier.glb");
-      rightShoulder = getRigBone("RightShoulder");
-      const rightArm = getRigBone("RightArm");
-      const rightForeArm = getRigBone("RightForeArm");
-      if (rightArm && rightForeArm && rightHand)
-        rightArmChain = [rightForeArm, rightArm, rightHand];
-      else console.error("Weapon hold pose unavailable: right arm chain is incomplete");
-      const leftArm = getRigBone("LeftArm");
-      const leftForeArm = getRigBone("LeftForeArm");
-      const leftHand = getRigBone("LeftHand");
-      if (leftArm && leftForeArm && leftHand) leftArmChain = [leftForeArm, leftArm, leftHand];
-      const loaded = Object.keys(actions).length;
-      if (loaded !== names.length) console.warn(`Loaded ${loaded}/${names.length} animations`);
-      gameReady = true;
-      gameStarted = true;
-      document.body.classList.remove("prestart");
-      loading2.classList.add("hidden");
-      setCameraMode(firstPerson);
-      playAnimation("Idle");
     }, void 0, (error) => {
       console.error("Soldier GLB load failed", error);
-      loading2.textContent = "Karakter yuklenemedi. APK varliklarini kontrol edin.";
+      loading2.classList.remove("hidden");
+      loading2.textContent = `Karakter y\xFCklenemedi: ${error.message || "soldier.glb dosyas\u0131n\u0131 kontrol edin."}`;
     });
   }
   function loadWeaponModels() {

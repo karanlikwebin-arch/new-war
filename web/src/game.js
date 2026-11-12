@@ -248,6 +248,7 @@ function createCameraWeapon(model) {
   cameraWeaponPivot = new THREE.Group();
   cameraWeaponPivot.position.set(0.22, -0.3, -0.62);
   camera.add(cameraWeaponPivot);
+  let muzzle;
 
   if (model) {
     const weapon = model.clone(true);
@@ -266,17 +267,17 @@ function createCameraWeapon(model) {
       }
     });
     cameraWeaponPivot.add(weapon);
-    const muzzle = new THREE.Object3D();
+    muzzle = new THREE.Object3D();
     muzzle.position.set(0, 0.015, -0.46);
-    cameraWeaponMuzzle = muzzle;
     cameraWeaponPivot.add(muzzle);
   } else {
     const fallback = activeWeapon === 0 ? makeRifle() : makeSidearm();
     fallback.gun.rotation.y = Math.PI;
     fallback.gun.scale.setScalar(0.8);
     cameraWeaponPivot.add(fallback.gun);
-    cameraWeaponMuzzle = fallback.muzzle;
+    muzzle = fallback.muzzle;
   }
+  cameraWeaponMuzzle = muzzle;
 
   const sleeve = new THREE.MeshStandardMaterial({ color: 0x4b5143, roughness: 0.95 });
   const glove = new THREE.MeshStandardMaterial({ color: 0x77705a, roughness: 0.95 });
@@ -310,9 +311,9 @@ function createCameraWeapon(model) {
     new THREE.MeshBasicMaterial({ color: 0xffc36a, transparent: true, opacity: 0.9 }),
   );
   cameraMuzzleFlash.visible = false;
-  muzzle.add(cameraMuzzleFlash);
+  cameraWeaponMuzzle.add(cameraMuzzleFlash);
   cameraMuzzleLight = new THREE.PointLight(0xff9b43, 0, 1.8);
-  muzzle.add(cameraMuzzleLight);
+  cameraWeaponMuzzle.add(cameraMuzzleLight);
   cameraWeaponPivot.visible = firstPerson;
 }
 
@@ -433,44 +434,54 @@ function onAnimationFinished(event) {
 function loadSoldier() {
   const loader = new GLTFLoader();
   loader.load("soldier.glb", (gltf) => {
-    soldier = gltf.scene;
-    soldier.name = "Rigged_Soldier";
-    playerRoot.add(soldier);
-    gltfAnimations = gltf.animations;
-    mixer = new THREE.AnimationMixer(soldier);
-    mixer.addEventListener("finished", onAnimationFinished);
+    try {
+      soldier = gltf.scene;
+      soldier.name = "Rigged_Soldier";
+      playerRoot.add(soldier);
+      gltfAnimations = gltf.animations;
+      mixer = new THREE.AnimationMixer(soldier);
+      mixer.addEventListener("finished", onAnimationFinished);
 
-    const names = ["Idle", "Walk", "Backstep", "Jump", "Landing", "Prone", "Death"];
-    for (const name of names) {
-      const clip = findClip(name);
-      if (clip) actions[name] = mixer.clipAction(clip);
+      const names = ["Idle", "Walk", "Backstep", "Jump", "Landing", "Prone", "Death"];
+      for (const name of names) {
+        const clip = findClip(name);
+        if (clip) actions[name] = mixer.clipAction(clip);
+      }
+
+      const rightHand = getRigBone("RightHand");
+      if (!rightHand) throw new Error("soldier.glb does not contain a RightHand bone");
+      rightShoulder = getRigBone("RightShoulder");
+      const rightArm = getRigBone("RightArm");
+      const rightForeArm = getRigBone("RightForeArm");
+      if (rightShoulder && rightArm && rightForeArm)
+        rightArmChain = [rightForeArm, rightArm, rightHand];
+      else console.warn("Right arm IK bones are incomplete; weapon will still attach to the hand");
+      const leftArm = getRigBone("LeftArm");
+      const leftForeArm = getRigBone("LeftForeArm");
+      const leftHand = getRigBone("LeftHand");
+      if (leftArm && leftForeArm && leftHand) leftArmChain = [leftForeArm, leftArm, leftHand];
+      else console.warn("Left arm IK bones are incomplete; two-handed hold is unavailable");
+
+      createWeapon(rightHand);
+      const loaded = Object.keys(actions).length;
+      if (!actions.Idle) throw new Error("soldier.glb does not contain the Idle animation");
+      if (loaded !== names.length) console.warn(`Loaded ${loaded}/${names.length} animations`);
+      gameReady = true;
+      gameStarted = true;
+      document.body.classList.remove("prestart");
+      loading.classList.add("hidden");
+      setCameraMode(firstPerson);
+      playAnimation("Idle");
+    } catch (error) {
+      gameReady = false;
+      console.error("Soldier initialization failed", error);
+      loading.classList.remove("hidden");
+      loading.textContent = `Karakter başlatılamadı: ${error.message}`;
     }
-
-    const rightHand = getRigBone("RightHand");
-    if (rightHand) createWeapon(rightHand);
-    else console.error("Weapon attachment failed: right-hand bone is missing from soldier.glb");
-    rightShoulder = getRigBone("RightShoulder");
-    const rightArm = getRigBone("RightArm");
-    const rightForeArm = getRigBone("RightForeArm");
-    if (rightArm && rightForeArm && rightHand)
-      rightArmChain = [rightForeArm, rightArm, rightHand];
-    else console.error("Weapon hold pose unavailable: right arm chain is incomplete");
-    const leftArm = getRigBone("LeftArm");
-    const leftForeArm = getRigBone("LeftForeArm");
-    const leftHand = getRigBone("LeftHand");
-    if (leftArm && leftForeArm && leftHand) leftArmChain = [leftForeArm, leftArm, leftHand];
-
-    const loaded = Object.keys(actions).length;
-    if (loaded !== names.length) console.warn(`Loaded ${loaded}/${names.length} animations`);
-    gameReady = true;
-    gameStarted = true;
-    document.body.classList.remove("prestart");
-    loading.classList.add("hidden");
-    setCameraMode(firstPerson);
-    playAnimation("Idle");
   }, undefined, (error) => {
     console.error("Soldier GLB load failed", error);
-    loading.textContent = "Karakter yuklenemedi. APK varliklarini kontrol edin.";
+    loading.classList.remove("hidden");
+    loading.textContent = `Karakter yüklenemedi: ${error.message || "soldier.glb dosyasını kontrol edin."}`;
   });
 }
 
